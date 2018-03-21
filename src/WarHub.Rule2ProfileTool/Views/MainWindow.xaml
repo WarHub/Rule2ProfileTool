@@ -1,0 +1,43 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:WarHub.Rule2ProfileTool.ViewModels;assembly=WarHub.Rule2ProfileTool"
+        xmlns:m="clr-namespace:WarHub.Rule2ProfileTool.Models;assembly=WarHub.Rule2ProfileTool"
+        Icon="resm:WarHub.Rule2ProfileTool.Assets.avalonia-logo.ico"
+        Title="WarHub.Rule2ProfileTool">
+
+  <Design.DataContext>
+    <vm:MainWindowViewModel/>
+  </Design.DataContext>
+
+  <DockPanel>
+    
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="_File">
+        <MenuItem Header="_Open folder" Command="{Binding SelectFolder}"></MenuItem>
+      </MenuItem>
+    </Menu>
+    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" DockPanel.Dock="Top">
+      This app converts Rules into Profiles in catalogues.
+    </TextBlock>
+
+    <Grid DockPanel.Dock="Left" RowDefinitions="Auto,*">
+      <TextBlock Grid.Row="0">Folder contents</TextBlock>
+      <ListBox Grid.Row="1" SelectionMode="Multiple" Items="{Binding Datafiles}">
+        <ListBox.ItemTemplate>
+          <DataTemplate DataType="m:DatafileInfo">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="{Binding Name}"></TextBlock>
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+
+    <Border BorderThickness="1" Padding="5">
+      <StackPanel>
+        <TextBlock>Ścieżka folderu:</TextBlock>
+        <TextBox Text="{Binding FolderPath}"></TextBox>
+      </StackPanel>
+    </Border>
+  </DockPanel>
+</Window>

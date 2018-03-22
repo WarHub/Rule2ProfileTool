@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -19,13 +21,13 @@ using WarHub.Rule2ProfileTool.Models;
 
 namespace WarHub.Rule2ProfileTool.ViewModels
 {
-    public class MainWindowViewModel : ViewModelBase
+    public class MainWindowViewModel : ViewModelBase, INotifyDataErrorInfo
     {
         public MainWindowViewModel()
         {
             SelectFolder = ReactiveCommand.CreateFromTask(async ct =>
             {
-                var dialog = new OpenFolderDialog()
+                var dialog = new OpenFolderDialog
                 {
                     Title = "Select folder with datafiles"
                 };
@@ -34,23 +36,31 @@ namespace WarHub.Rule2ProfileTool.ViewModels
             });
             SelectFolder.Subscribe(path => FolderPath = path);
 
-            var canLoadFolder = this.WhenAnyValue(x => x.FolderPath, path => !string.IsNullOrWhiteSpace(path))
-                .Do(x => Log.Debug("Can execute: {CanExecute}", x));
+            var canLoadFolder = this.WhenAnyValue(x => x.FolderPath, path => !string.IsNullOrWhiteSpace(path));
 
             LoadFolder = ReactiveCommand.Create(LoadFolderImpl, canLoadFolder);
+            LoadFolder.ThrownExceptions
+                .Subscribe(exception =>
+                {
+                    if (exception is DirectoryNotFoundException dirNotFound)
+                    {
+                        FolderPathError = dirNotFound.Message;
+                    }
+                    Log.Warning(exception, "Error when loading folder");
+                });
             LoadFolder.Subscribe(results =>
             {
                 Datafiles.Clear();
                 Datafiles.AddRange(results);
-            }, exception =>
-            {
-                Log.Warning(exception, "Error when loading folder");
+                FolderPathError = null;
             });
 
+            this.WhenAnyValue(x => x.FolderPathError)
+                .DistinctUntilChanged()
+                .Subscribe(x => ErrorsChanged?.Invoke(this, new DataErrorsChangedEventArgs(nameof(FolderPath))));
+
             this.WhenAnyValue(x => x.FolderPath)
-                .Do(x => Log.Debug("Wybrana ścieżka1: {Path}", x))
                 .Throttle(TimeSpan.FromSeconds(0.5), RxApp.MainThreadScheduler)
-                .Do(x => Log.Debug("Wybrana ścieżka2: {Path}", x))
                 .Select(x => Unit.Default)
                 .InvokeCommand(this, x => x.LoadFolder);
 
@@ -68,6 +78,20 @@ namespace WarHub.Rule2ProfileTool.ViewModels
                     info.Name = $"{node.Name} (v{node.Revision.ToString()})";
                     info.Root = node;
                 });
+
+            DatafileConversionInfos = SelectedDatafiles
+                .CreateDerivedCollection(
+                    x => new DatafileConversionViewModel(x),
+                    filter: null,
+                    orderer: (left, right) => left.Info.Name.CompareTo(right.Info.Name));
+
+            var canConvert =
+                this.WhenAnyValue(
+                    x => x.FolderPath,
+                    x => x.FolderPathError,
+                    (path,error) => !string.IsNullOrWhiteSpace(path) && error == null);
+
+            Convert = ReactiveCommand.Create(() =>{}, canConvert);
         }
 
         private static (DatafileInfo info, CatalogueBaseNode node) LoadFileRoot(DatafileInfo info)
@@ -93,10 +117,16 @@ namespace WarHub.Rule2ProfileTool.ViewModels
 
         public ReactiveCommand<Unit, string> SelectFolder { get; }
 
+        public ReactiveCommand<Unit, Unit> Convert { get; }
+
         public ReactiveList<DatafileInfo> Datafiles { get; } = new ReactiveList<DatafileInfo>();
 
-        string _folderPath;
-        private IList _selectedDatafiles;
+        public ReactiveList<DatafileInfo> SelectedDatafiles { get; } = new ReactiveList<DatafileInfo>();
+
+        public IReactiveDerivedList<DatafileConversionViewModel> DatafileConversionInfos { get; }
+
+        private string _folderPath;
+        private string _folderPathError;
 
         public string FolderPath
         {
@@ -104,10 +134,24 @@ namespace WarHub.Rule2ProfileTool.ViewModels
             private set => this.RaiseAndSetIfChanged(ref _folderPath, value);
         }
 
-        public IList SelectedDatafiles
+        public string FolderPathError
         {
-            get => _selectedDatafiles;
-            set => this.RaiseAndSetIfChanged(ref _selectedDatafiles, value);
+            get => _folderPathError;
+            private set => this.RaiseAndSetIfChanged(ref _folderPathError, value);
         }
+
+        public IEnumerable GetErrors(string propertyName)
+        {
+            switch (propertyName)
+            {
+                case nameof(FolderPath):
+                    return new[] { _folderPathError };
+                default:
+                    return Enumerable.Empty<object>();
+            }
+        }
+
+        public bool HasErrors { get; }
+        public event EventHandler<DataErrorsChangedEventArgs> ErrorsChanged;
     }
 }

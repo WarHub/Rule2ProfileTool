@@ -13,6 +13,7 @@ namespace WarHub.Rule2ProfileTool.Models
         public DatafileInfo(XmlDocument document)
         {
             Document = document;
+            _name = document.Name;
         }
 
         public XmlDocument Document { get; }

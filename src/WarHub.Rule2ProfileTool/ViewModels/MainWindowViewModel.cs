@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -55,9 +56,10 @@ namespace WarHub.Rule2ProfileTool.ViewModels
 
             DatafilesToLoad = new Subject<DatafileInfo>();
 
-            Datafiles.ActOnEveryObject(item => DatafilesToLoad.OnNext(item), item =>{});
+            Datafiles.ActOnEveryObject(item => DatafilesToLoad.OnNext(item), item => { });
 
             this.WhenAnyObservable(x => x.DatafilesToLoad)
+                .ObserveOn(RxApp.TaskpoolScheduler)
                 .Select(LoadFileRoot)
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(tuple =>
@@ -85,18 +87,27 @@ namespace WarHub.Rule2ProfileTool.ViewModels
             return infos;
         }
 
-        public ReactiveList<DatafileInfo> Datafiles { get; } = new ReactiveList<DatafileInfo>();
-
         private Subject<DatafileInfo> DatafilesToLoad { get; }
+
         private ReactiveCommand<Unit, IReadOnlyCollection<DatafileInfo>> LoadFolder { get; }
 
         public ReactiveCommand<Unit, string> SelectFolder { get; }
 
+        public ReactiveList<DatafileInfo> Datafiles { get; } = new ReactiveList<DatafileInfo>();
+
         string _folderPath;
+        private IList _selectedDatafiles;
+
         public string FolderPath
         {
             get => _folderPath;
             private set => this.RaiseAndSetIfChanged(ref _folderPath, value);
+        }
+
+        public IList SelectedDatafiles
+        {
+            get => _selectedDatafiles;
+            set => this.RaiseAndSetIfChanged(ref _selectedDatafiles, value);
         }
     }
 }

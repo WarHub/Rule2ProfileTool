@@ -22,7 +22,7 @@
 
     <Grid DockPanel.Dock="Left" RowDefinitions="Auto,*">
       <TextBlock Grid.Row="0">Folder contents</TextBlock>
-      <ListBox Grid.Row="1" SelectionMode="Multiple" Items="{Binding Datafiles}">
+      <ListBox Grid.Row="1" SelectionMode="Multiple" Items="{Binding Datafiles}" SelectedItems="{Binding SelectedDatafiles, Mode=OneWayToSource}">
         <ListBox.ItemTemplate>
           <DataTemplate DataType="m:DatafileInfo">
             <StackPanel Orientation="Horizontal">

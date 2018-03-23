@@ -2,11 +2,11 @@
 
 namespace WarHub.Rule2ProfileTool.Models
 {
-    public class DatafileConversionViewModel : ReactiveObject
+    public class DatafileConversionStatus : ReactiveObject
     {
         private double _conversionProgressValue;
 
-        public DatafileConversionViewModel(DatafileInfo info)
+        public DatafileConversionStatus(DatafileInfo info)
         {
             Info = info;
         }

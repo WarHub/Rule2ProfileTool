@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:WarHub.Rule2ProfileTool.ViewModels;assembly=WarHub.Rule2ProfileTool"
         xmlns:m="clr-namespace:WarHub.Rule2ProfileTool.Models;assembly=WarHub.Rule2ProfileTool"
+        xmlns:c="clr-namespace:WarHub.Rule2ProfileTool.Converters;assembly=WarHub.Rule2ProfileTool"
         Icon="resm:WarHub.Rule2ProfileTool.Assets.avalonia-logo.ico"
         Title="WarHub.Rule2ProfileTool">
 
@@ -9,50 +10,98 @@
     <vm:MainWindowViewModel/>
   </Design.DataContext>
 
+  <Window.Resources>
+    <c:NodeToPathConverter x:Key="Node2Path"/>
+  </Window.Resources>
+
+  <Window.DataTemplates>
+    <DataTemplate DataType="m:DatafileConversionStatus">
+      <StackPanel>
+        <TextBlock Text="{Binding Info.Name}"/>
+        <ProgressBar Value="{Binding ConversionProgressValue}"/>
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="m:DatafileInfo">
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="{Binding Name}"/>
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="m:CharacteristicTypeInfo">
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="{Binding Node.Name}"/>
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="m:ProfileTypeInfo">
+      <StackPanel>
+        <TextBlock Text="{Binding Node.Name}"/>
+        <!--<TextBlock Text="{Binding Node, Converter={StaticResource Node2Path}}"/>-->
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="m:RuleSelection">
+      <CheckBox IsChecked="{Binding IsSelected}">
+        <StackPanel>
+          <TextBlock Text="{Binding Node.Name}"/>
+          <!--<TextBlock Text="{Binding Node, Converter={StaticResource Node2Path}}"/>-->
+        </StackPanel>
+      </CheckBox>
+    </DataTemplate>
+  </Window.DataTemplates>
+  
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding SelectFolder}"/>
+  </Window.KeyBindings>
+  
   <DockPanel>
     
     <Menu DockPanel.Dock="Top">
       <MenuItem Header="_File">
-        <MenuItem Header="_Open folder" Command="{Binding SelectFolder}"></MenuItem>
+        <MenuItem Header="_Open folder (Ctrl+O)" Command="{Binding SelectFolder}" />
       </MenuItem>
     </Menu>
+    
     <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" DockPanel.Dock="Top">
       This app converts Rules into Profiles in catalogues.
     </TextBlock>
 
-    <Grid DockPanel.Dock="Left" RowDefinitions="Auto, Auto,*">
+    <Grid DockPanel.Dock="Left" RowDefinitions="Auto, Auto,*" Margin="6">
       <TextBox Grid.Row="0" Text="{Binding FolderPath}" Watermark="Folder path" UseFloatingWatermark="True"></TextBox>
       <TextBlock Grid.Row="1">Folder contents</TextBlock>
-      <ListBox Grid.Row="2" SelectionMode="Multiple" Items="{Binding Datafiles}" SelectedItems="{Binding SelectedDatafiles}" MinWidth="200">
-        <ListBox.ItemTemplate>
-          <DataTemplate DataType="m:DatafileInfo">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="{Binding Name}"></TextBlock>
-            </StackPanel>
-          </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
+      <ListBox Grid.Row="2" SelectionMode="Multiple" Items="{Binding Datafiles}" SelectedItems="{Binding SelectedDatafiles}" MinWidth="200"/>
     </Grid>
 
-    <Border BorderThickness="1" Padding="5">
+    <Border BorderThickness="1" Padding="6">
       <Grid RowDefinitions="Auto,Auto,Auto">
-        <StackPanel Grid.Row="0">
+        <StackPanel Grid.Row="0" Gap="8">
+
+          <StackPanel>
+            <TextBlock>Select Profile Type to convert rules to:</TextBlock>
+            <ListBox Items="{Binding ProfileTypes}" SelectedItem="{Binding SelectedProfileType}"
+                     SelectionMode="AlwaysSelected" MinWidth="200" MinHeight="30" />
+            <TextBlock Text="{Binding SelectedProfileType.Node.Name}" />
+          </StackPanel>
+
+
+          <StackPanel>
+            <TextBlock>Select Characteristic to which rules descriptions will be written (Page and Book are moved automatically):</TextBlock>
+            <ListBox Items="{Binding CharacteristicInfos}" SelectedItem="{Binding SelectedCharacteristicType}"
+                     SelectionMode="AlwaysSelected" MinWidth="200" MinHeight="30" />
+            <TextBlock Text="{Binding SelectedCharacteristicType.Node.Name}" />
+          </StackPanel>
+
+          <StackPanel Gap="4">
+            <TextBlock>Select rules to convert into profiles:</TextBlock>
+            <CheckBox IsThreeState="True" IsChecked="{Binding AllRulesSelected}">Select all</CheckBox>
+            <ListBox Items="{Binding Rules}" MinWidth="200" MinHeight="30"/>
+          </StackPanel>
+
           <StackPanel Orientation="Horizontal">
             <Button Content="Convert" Command="{Binding Convert}"></Button>
           </StackPanel>
         </StackPanel>
-
-        <ListBox Grid.Row="1" Items="{Binding DatafileConversionInfos}" SelectionMode="AlwaysSelected" HorizontalAlignment="Left" MinWidth="200" MinHeight="30">
-          <ListBox.ItemTemplate>
-            <DataTemplate DataType="m:DatafileConversionViewModel">
-              <StackPanel>
-                <TextBlock Text="{Binding Info.Name}"></TextBlock>
-                <ProgressBar Value="{Binding ConversionProgressValue}" ></ProgressBar>
-              </StackPanel>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
       </Grid>
     </Border>
+
+    <ListBox DockPanel.Dock="Right" Items="{Binding DatafileConversionStatuses}" SelectionMode="AlwaysSelected"
+             HorizontalAlignment="Left" MinWidth="200" MinHeight="30" Margin="6"/>
   </DockPanel>
 </Window>

@@ -70,7 +70,7 @@ namespace WarHub.Rule2ProfileTool.ViewModels
 
             this.WhenAnyObservable(x => x.DatafilesToLoad)
                 .ObserveOn(RxApp.TaskpoolScheduler)
-                .Select(LoadFileRoot)
+                .Select(info => (info, LoadFileRoot(info)))
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(tuple =>
                 {
@@ -79,9 +79,33 @@ namespace WarHub.Rule2ProfileTool.ViewModels
                     info.Root = node;
                 });
 
-            DatafileConversionInfos = SelectedDatafiles
+            RefreshProfileTypes = ReactiveCommand.Create(RefreshProfileTypesImpl);
+            RefreshProfileTypes
+                .Subscribe(results =>
+                {
+                    ProfileTypes.Clear();
+                    ProfileTypes.AddRange(results);
+                });
+
+            SelectedDatafiles.Changed
+                .Select(x => Unit.Default)
+                .InvokeCommand(RefreshProfileTypes);
+
+            RefreshCharacteristicTypeInfos = ReactiveCommand.Create(RefreshCharacteristicTypeInfosImpl);
+            RefreshCharacteristicTypeInfos
+                .Subscribe(results =>
+                {
+                    CharacteristicInfos.Clear();
+                    CharacteristicInfos.AddRange(results);
+                });
+
+            this.WhenAnyValue(x => x.SelectedProfileType)
+                .Select(x => Unit.Default)
+                .InvokeCommand(RefreshCharacteristicTypeInfos);
+
+            DatafileConversionStatuses = SelectedDatafiles
                 .CreateDerivedCollection(
-                    x => new DatafileConversionViewModel(x),
+                    x => new DatafileConversionStatus(x),
                     filter: null,
                     orderer: (left, right) => left.Info.Name.CompareTo(right.Info.Name));
 
@@ -94,10 +118,30 @@ namespace WarHub.Rule2ProfileTool.ViewModels
             Convert = ReactiveCommand.Create(() =>{}, canConvert);
         }
 
-        private static (DatafileInfo info, CatalogueBaseNode node) LoadFileRoot(DatafileInfo info)
+        private IEnumerable<ProfileTypeInfo> RefreshProfileTypesImpl()
+        {
+            var gsts = Datafiles.Where(x => x.Document.Kind == XmlDocumentKind.Gamesystem);
+            var datafiles = gsts.Concat(SelectedDatafiles).Distinct();
+            var profileTypes = datafiles
+                .SelectMany(file =>
+                {
+                    var root = (CatalogueBaseNode)file.Document.GetRoot();
+                    return root.ProfileTypes.Select(x => new ProfileTypeInfo(x));
+                })
+                .ToList();
+            return profileTypes;
+        }
+
+        private IEnumerable<CharacteristicTypeInfo> RefreshCharacteristicTypeInfosImpl()
+        {
+            var profile = SelectedProfileType;
+            return profile?.Node.CharacteristicTypes.Select(x => new CharacteristicTypeInfo(x)) ?? new CharacteristicTypeInfo[0];
+        }
+
+        private static CatalogueBaseNode LoadFileRoot(DatafileInfo info)
         {
             var root = (CatalogueBaseNode)info.Document.GetRoot();
-            return (info, root);
+            return root;
         }
 
         private IReadOnlyCollection<DatafileInfo> LoadFolderImpl()
@@ -115,6 +159,10 @@ namespace WarHub.Rule2ProfileTool.ViewModels
 
         private ReactiveCommand<Unit, IReadOnlyCollection<DatafileInfo>> LoadFolder { get; }
 
+        private ReactiveCommand<Unit, IEnumerable<ProfileTypeInfo>> RefreshProfileTypes { get; }
+
+        private ReactiveCommand<Unit, IEnumerable<CharacteristicTypeInfo>> RefreshCharacteristicTypeInfos { get; }
+
         public ReactiveCommand<Unit, string> SelectFolder { get; }
 
         public ReactiveCommand<Unit, Unit> Convert { get; }
@@ -123,21 +171,41 @@ namespace WarHub.Rule2ProfileTool.ViewModels
 
         public ReactiveList<DatafileInfo> SelectedDatafiles { get; } = new ReactiveList<DatafileInfo>();
 
-        public IReactiveDerivedList<DatafileConversionViewModel> DatafileConversionInfos { get; }
+        public IReactiveDerivedList<DatafileConversionStatus> DatafileConversionStatuses { get; }
+
+        public ReactiveList<ProfileTypeInfo> ProfileTypes { get; } = new ReactiveList<ProfileTypeInfo>();
+
+        public ReactiveList<CharacteristicTypeInfo> CharacteristicInfos { get; } = new ReactiveList<CharacteristicTypeInfo>();
+
+        public ReactiveList<RuleSelection> Rules { get; } = new ReactiveList<RuleSelection>();
 
         private string _folderPath;
         private string _folderPathError;
+        private CharacteristicTypeInfo _selectedCharacteristicType;
+        private ProfileTypeInfo _selectedProfileType;
 
         public string FolderPath
         {
             get => _folderPath;
-            private set => this.RaiseAndSetIfChanged(ref _folderPath, value);
+            set => this.RaiseAndSetIfChanged(ref _folderPath, value);
         }
 
         public string FolderPathError
         {
             get => _folderPathError;
             private set => this.RaiseAndSetIfChanged(ref _folderPathError, value);
+        }
+
+        public ProfileTypeInfo SelectedProfileType
+        {
+            get => _selectedProfileType;
+            set => this.RaiseAndSetIfChanged(ref _selectedProfileType, value);
+        }
+
+        public CharacteristicTypeInfo SelectedCharacteristicType
+        {
+            get => _selectedCharacteristicType;
+            set => this.RaiseAndSetIfChanged(ref _selectedCharacteristicType, value);
         }
 
         public IEnumerable GetErrors(string propertyName)

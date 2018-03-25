@@ -79,12 +79,38 @@ namespace WarHub.Rule2ProfileTool.ViewModels
                     info.Root = node;
                 });
 
+            RefreshRuleSelections = ReactiveCommand.Create(RefreshRuleSelectionsImpl);
+            RefreshRuleSelections
+                .Subscribe(results =>
+                {
+                    Rules.Clear();
+                    Rules.AddRange(results);
+                });
+
+            MarkAllRules = ReactiveCommand.Create(MarkAllRulesImpl, Rules.IsEmptyChanged.Select(x => !x));
+            
+            Rules.ItemChanged
+                .WithLatestFrom(MarkAllRules.IsExecuting, (changed, isExecuting) => isExecuting ? null : changed)
+                .Where(x => x != null)
+                .Subscribe(e =>
+                {
+                    if (!e.Sender.IsSelected)
+                    {
+                        AllRulesSelected = false;
+                    }
+                });
+
+            SelectedDatafiles.Changed
+                .Select(x => Unit.Default)
+                .InvokeCommand(RefreshRuleSelections);
+
             RefreshProfileTypes = ReactiveCommand.Create(RefreshProfileTypesImpl);
             RefreshProfileTypes
                 .Subscribe(results =>
                 {
                     ProfileTypes.Clear();
                     ProfileTypes.AddRange(results);
+                    SelectedProfileType = ProfileTypes.FirstOrDefault();
                 });
 
             SelectedDatafiles.Changed
@@ -97,6 +123,7 @@ namespace WarHub.Rule2ProfileTool.ViewModels
                 {
                     CharacteristicInfos.Clear();
                     CharacteristicInfos.AddRange(results);
+                    SelectedCharacteristicType = CharacteristicInfos.FirstOrDefault();
                 });
 
             this.WhenAnyValue(x => x.SelectedProfileType)
@@ -113,9 +140,37 @@ namespace WarHub.Rule2ProfileTool.ViewModels
                 this.WhenAnyValue(
                     x => x.FolderPath,
                     x => x.FolderPathError,
-                    (path,error) => !string.IsNullOrWhiteSpace(path) && error == null);
+                    (path, error) => !string.IsNullOrWhiteSpace(path) && error == null);
 
-            Convert = ReactiveCommand.Create(() =>{}, canConvert);
+            Convert = ReactiveCommand.Create(() => { }, canConvert);
+        }
+
+        private void MarkAllRulesImpl()
+        {
+            var selected = !AllRulesSelected;
+            foreach (var rule in Rules)
+            {
+                rule.IsSelected = selected;
+            }
+            AllRulesSelected = selected;
+        }
+
+        private IEnumerable<RuleSelection> RefreshRuleSelectionsImpl()
+        {
+            var catalogues = SelectedDatafiles;
+            var rules = catalogues
+                .SelectMany(file =>
+                {
+                    var root = (CatalogueBaseNode)file.Document.GetRoot();
+                    var ruleNodes = root
+                    .Descendants(x => x is SelectionEntryBaseNode)
+                    .OfType<RuleNode>()
+                    .Select(node => new RuleSelection(node))
+                    .ToList();
+                    return ruleNodes;
+                })
+                .ToList();
+            return rules;
         }
 
         private IEnumerable<ProfileTypeInfo> RefreshProfileTypesImpl()
@@ -163,7 +218,11 @@ namespace WarHub.Rule2ProfileTool.ViewModels
 
         private ReactiveCommand<Unit, IEnumerable<CharacteristicTypeInfo>> RefreshCharacteristicTypeInfos { get; }
 
+        private ReactiveCommand<Unit, IEnumerable<RuleSelection>> RefreshRuleSelections { get; }
+
         public ReactiveCommand<Unit, string> SelectFolder { get; }
+
+        public ReactiveCommand<Unit, Unit> MarkAllRules { get; }
 
         public ReactiveCommand<Unit, Unit> Convert { get; }
 
@@ -177,12 +236,19 @@ namespace WarHub.Rule2ProfileTool.ViewModels
 
         public ReactiveList<CharacteristicTypeInfo> CharacteristicInfos { get; } = new ReactiveList<CharacteristicTypeInfo>();
 
-        public ReactiveList<RuleSelection> Rules { get; } = new ReactiveList<RuleSelection>();
+        public ReactiveList<RuleSelection> Rules { get; } = new ReactiveList<RuleSelection>() { ChangeTrackingEnabled = true };
 
         private string _folderPath;
         private string _folderPathError;
         private CharacteristicTypeInfo _selectedCharacteristicType;
         private ProfileTypeInfo _selectedProfileType;
+        private bool _allRulesSelected = false;
+
+        public bool AllRulesSelected
+        {
+            get => _allRulesSelected;
+            set => this.RaiseAndSetIfChanged(ref _allRulesSelected, value);
+        }
 
         public string FolderPath
         {

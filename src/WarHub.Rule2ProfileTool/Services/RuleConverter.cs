@@ -66,7 +66,17 @@ namespace WarHub.Rule2ProfileTool.Services
 
         private IEnumerable<InfoLinkNode> ConvertLinks(IEnumerable<InfoLinkNode> links)
         {
-            return links.Select(x => Profiles.ContainsKey(x.TargetId) ? x.WithType(InfoLinkKind.Profile) : x);
+            return links.Select(ConvertLink);
+        }
+
+        private InfoLinkNode ConvertLink(InfoLinkNode link)
+        {
+            var newLink = Profiles.ContainsKey(link.TargetId) ? link.WithType(InfoLinkKind.Profile) : link;
+            if (link.Modifiers.Any())
+            {
+                MessagesCore.Add(new ConverterMessage(link, "The rule link has modifiers, all of which were copied without conversion and may cause problems."));
+            }
+            return newLink;
         }
 
         private (ProfileNode[], RuleNode[]) ConvertRulesAndProfiles(NodeList<ProfileNode> nodeProfiles, NodeList<RuleNode> nodeRules)
@@ -92,10 +102,11 @@ namespace WarHub.Rule2ProfileTool.Services
                 .WithInfoLinks(rule.InfoLinks)
                 .WithProfiles(rule.Profiles)
                 .WithRules(rule.Rules)
+                .WithModifiers(rule.Modifiers)
                 .AddCharacteristics(CreateCharacteristics());
             if (rule.Modifiers.Any())
             {
-                MessagesCore.Add(new ConverterMessage(rule, "The rule has modifiers, none of which were converted."));
+                MessagesCore.Add(new ConverterMessage(rule, "The rule has modifiers, all of which were copied without conversion and may cause problems."));
             }
             return profileNode;
 

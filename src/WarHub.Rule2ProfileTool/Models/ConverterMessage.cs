@@ -4,13 +4,13 @@ namespace WarHub.Rule2ProfileTool.Models
 {
     public class ConverterMessage
     {
-        public ConverterMessage(RuleNode rule, string text)
+        public ConverterMessage(SourceNode node, string text)
         {
-            Rule = rule;
+            Node = node;
             Text = text;
         }
 
-        public RuleNode Rule { get; }
+        public SourceNode Node { get; }
         public string Text { get; }
     }
 }

@@ -149,6 +149,7 @@ namespace WarHub.Rule2ProfileTool.ViewModels
                     => !string.IsNullOrWhiteSpace(path) && error == null && !emptyFiles && profileType != null && chType != null && !emptyRules);
 
             Convert = ReactiveCommand.Create(ConvertImpl, canConvert);
+            Convert.InvokeCommand(LoadFolder);
         }
 
         private void ConvertImpl()

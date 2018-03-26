@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -18,6 +18,7 @@ using WarHub.ArmouryModel.Source;
 using WarHub.ArmouryModel.Source.BattleScribe;
 using WarHub.ArmouryModel.Workspaces.BattleScribe;
 using WarHub.Rule2ProfileTool.Models;
+using WarHub.Rule2ProfileTool.Services;
 
 namespace WarHub.Rule2ProfileTool.ViewModels
 {
@@ -140,9 +141,45 @@ namespace WarHub.Rule2ProfileTool.ViewModels
                 this.WhenAnyValue(
                     x => x.FolderPath,
                     x => x.FolderPathError,
-                    (path, error) => !string.IsNullOrWhiteSpace(path) && error == null);
+                    x => x.SelectedDatafiles.IsEmpty,
+                    x => x.SelectedProfileType,
+                    x => x.SelectedCharacteristicType,
+                    x => x.Rules.IsEmpty,
+                    (path, error, emptyFiles, profileType, chType, emptyRules)
+                    => !string.IsNullOrWhiteSpace(path) && error == null && !emptyFiles && profileType != null && chType != null && !emptyRules);
 
-            Convert = ReactiveCommand.Create(() => { }, canConvert);
+            Convert = ReactiveCommand.Create(ConvertImpl, canConvert);
+        }
+
+        private void ConvertImpl()
+        {
+            var rules = Rules.Where(x => x.IsSelected).Select(x => x.Node).ToImmutableArray();
+            var converter = new RuleConverter(SelectedProfileType.Node, SelectedCharacteristicType.Node, rules);
+            foreach (var datafileStatus in DatafileConversionStatuses)
+            {
+                datafileStatus.ConversionProgressValue = 0.3;
+                var catalogueBase = (CatalogueBaseNode)datafileStatus.Info.Document.GetRoot();
+                var converted = converter.Convert(catalogueBase);
+                datafileStatus.ConversionProgressValue = 0.9;
+                using (var file = File.Open(datafileStatus.Info.Document.Path, FileMode.Create))
+                {
+                    GetSaveAction(converted)?.Invoke(file);
+                }
+                datafileStatus.ConversionProgressValue = 1;
+            }
+
+            Action<Stream> GetSaveAction(CatalogueBaseNode catalogueBase)
+            {
+                if (catalogueBase is CatalogueNode catalogue)
+                {
+                    return catalogue.Serialize;
+                }
+                if (catalogueBase is GamesystemNode gamesystem)
+                {
+                    return gamesystem.Serialize;
+                }
+                return null;
+            }
         }
 
         private void MarkAllRulesImpl()

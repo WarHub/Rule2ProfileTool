@@ -18,7 +18,7 @@
     <DataTemplate DataType="m:DatafileConversionStatus">
       <StackPanel>
         <TextBlock Text="{Binding Info.Name}"/>
-        <ProgressBar Value="{Binding ConversionProgressValue}"/>
+        <ProgressBar Value="{Binding ConversionProgressValue}" Minimum="0" Maximum="1"/>
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="m:DatafileInfo">
@@ -34,7 +34,7 @@
     <DataTemplate DataType="m:ProfileTypeInfo">
       <StackPanel>
         <TextBlock Text="{Binding Node.Name}"/>
-        <TextBlock Text="{Binding Node}" Margin="12,0,0,0" FontSize="10"/>
+        <!--<TextBlock Text="{Binding Node}" Margin="12,0,0,0" FontSize="10"/>-->
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="m:RuleSelection">

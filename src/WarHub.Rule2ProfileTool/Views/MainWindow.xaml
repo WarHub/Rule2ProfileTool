@@ -81,8 +81,14 @@
       <ListBox Grid.Row="2" SelectionMode="Multiple" Items="{Binding Datafiles}" SelectedItems="{Binding SelectedDatafiles}" MinWidth="200"/>
     </Grid>
 
-    <ListBox DockPanel.Dock="Right" Items="{Binding DatafileConversionStatuses}" SelectionMode="AlwaysSelected"
-             HorizontalAlignment="Left" MinWidth="200" MinHeight="30" Margin="6"/>
+    <Grid DockPanel.Dock="Right" RowDefinitions="Auto,*" Margin="6">
+      <TextBlock Grid.Row="0">Conversion progress</TextBlock>
+      <ItemsControl Grid.Row="1"
+                    Items="{Binding DatafileConversionStatuses}"
+                    BorderBrush="DarkGray" BorderThickness="2"
+                    HorizontalAlignment="Left" MinWidth="200" MinHeight="30" Margin="6"/>
+    </Grid>
+
 
     <Border BorderThickness="1" Padding="6">
       <Grid RowDefinitions="Auto,Auto,*">

@@ -24,7 +24,7 @@ namespace WarHub.Rule2ProfileTool.Converters
 
         private static string GetDisplayString(SourceNode node)
         {
-            return node is INameableNode named ? named.Name
+            return node is INameableNode named ? $"{node.Kind} '{named.Name}'"
                 : node.IsList ? node.GetChildInfoFromParent().Name
                 : node.Kind.ToString();
         }

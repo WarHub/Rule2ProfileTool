@@ -14,6 +14,18 @@
     <c:NodeToPathConverter x:Key="Node2Path"/>
   </Window.Resources>
 
+  <Window.Styles>
+    <Style Selector="ListBox:empty">
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border BorderThickness="2" BorderBrush="DarkGray">
+            <TextBlock>There are no items.</TextBlock>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+  </Window.Styles>
+
   <Window.DataTemplates>
     <DataTemplate DataType="m:DatafileConversionStatus">
       <StackPanel>
@@ -34,14 +46,14 @@
     <DataTemplate DataType="m:ProfileTypeInfo">
       <StackPanel>
         <TextBlock Text="{Binding Node.Name}"/>
-        <!--<TextBlock Text="{Binding Node}" Margin="12,0,0,0" FontSize="10"/>-->
+        <TextBlock Text="{Binding Node, Converter={StaticResource Node2Path}}" FontSize="10"/>
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="m:RuleSelection">
       <CheckBox IsChecked="{Binding IsSelected}" Margin="2">
         <StackPanel>
           <TextBlock Text="{Binding Node.Name}"/>
-          <!--<TextBlock Text="{Binding Node, Converter={StaticResource Node2Path}}"/>-->
+          <TextBlock Text="{Binding Node, Converter={StaticResource Node2Path}}" FontSize="10"/>
         </StackPanel>
       </CheckBox>
     </DataTemplate>
@@ -69,10 +81,13 @@
       <ListBox Grid.Row="2" SelectionMode="Multiple" Items="{Binding Datafiles}" SelectedItems="{Binding SelectedDatafiles}" MinWidth="200"/>
     </Grid>
 
+    <ListBox DockPanel.Dock="Right" Items="{Binding DatafileConversionStatuses}" SelectionMode="AlwaysSelected"
+             HorizontalAlignment="Left" MinWidth="200" MinHeight="30" Margin="6"/>
+
     <Border BorderThickness="1" Padding="6">
       <Grid RowDefinitions="Auto,Auto,*">
 
-        <Grid Grid.Row="0" RowDefinitions="Auto,Auto,Auto">
+        <Grid Grid.Row="0" RowDefinitions="Auto, Auto, Auto">
           <TextBlock Grid.Row="0" Margin="0,2">Select Profile Type to convert rules to:</TextBlock>
 
           <DropDown Grid.Row="1" MinWidth="200" MinHeight="32" MaxHeight="400"
@@ -93,8 +108,8 @@
         <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*,Auto">
           <TextBlock Grid.Row="0" Margin="0,2">Select rules to convert into profiles:</TextBlock>
           <ListBox Grid.Row="2" Items="{Binding Rules}" MinWidth="200" MinHeight="100"/>
-          
-          <StackPanel Orientation="Horizontal" Grid.Row="3" Margin="0,4" Gap="4">
+
+          <StackPanel Orientation="Horizontal" Grid.Row="3" Margin="0,4" Spacing="4">
             <ToggleButton Command="{Binding MarkAllRules}" IsChecked="{Binding AllRulesSelected, Mode=OneWay}">
               <ToggleButton.Styles>
                 <Style Selector="ToggleButton:unchecked">
@@ -111,8 +126,5 @@
 
       </Grid>
     </Border>
-
-    <ListBox DockPanel.Dock="Right" Items="{Binding DatafileConversionStatuses}" SelectionMode="AlwaysSelected"
-             HorizontalAlignment="Left" MinWidth="200" MinHeight="30" Margin="6"/>
   </DockPanel>
 </Window>

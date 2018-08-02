@@ -33,8 +33,8 @@ namespace WarHub.Rule2ProfileTool.Services
 
         public CatalogueBaseNode Convert(CatalogueBaseNode node)
         {
-            var (profiles, rules) = ConvertRulesAndProfiles(node.Profiles, node.Rules);
-            var (sharedProfiles, sharedRules) = ConvertRulesAndProfiles(node.SharedProfiles, node.SharedRules);
+            var (profiles, rules) = ConvertRulesAndProfiles(node.Profiles.NodeList, node.Rules.NodeList);
+            var (sharedProfiles, sharedRules) = ConvertRulesAndProfiles(node.SharedProfiles.NodeList, node.SharedRules.NodeList);
             var infoLinks = ConvertLinks(node.InfoLinks).ToArray();
             var selectionEntries = node.SelectionEntries.Select(ConvertSelectionEntryBase).ToArray();
             var sharedSelectionEntries = node.SharedSelectionEntries.Select(ConvertSelectionEntryBase).ToArray();
@@ -52,7 +52,7 @@ namespace WarHub.Rule2ProfileTool.Services
 
         private T ConvertSelectionEntryBase<T>(T node) where T : SelectionEntryBaseNode
         {
-            var (profiles, rules) = ConvertRulesAndProfiles(node.Profiles, node.Rules);
+            var (profiles, rules) = ConvertRulesAndProfiles(node.Profiles.NodeList, node.Rules.NodeList);
             var infoLinks = ConvertLinks(node.InfoLinks).ToArray();
             var selectionEntries = node.SelectionEntries.Select(ConvertSelectionEntryBase).ToArray();
             var selectionEntryGroups = node.SelectionEntryGroups.Select(ConvertSelectionEntryBase).ToArray();

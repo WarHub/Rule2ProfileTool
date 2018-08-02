@@ -37,9 +37,7 @@ namespace WarHub.Rule2ProfileTool.ViewModels
             });
             SelectFolder.Subscribe(path => FolderPath = path);
 
-            var canLoadFolder = this.WhenAnyValue(x => x.FolderPath, path => !string.IsNullOrWhiteSpace(path));
-
-            LoadFolder = ReactiveCommand.Create(LoadFolderImpl, canLoadFolder);
+            LoadFolder = ReactiveCommand.Create(LoadFolderImpl);
             LoadFolder.ThrownExceptions
                 .Subscribe(exception =>
                 {
@@ -162,7 +160,7 @@ namespace WarHub.Rule2ProfileTool.ViewModels
                 var catalogueBase = (CatalogueBaseNode)datafileStatus.Info.Document.GetRoot();
                 var converted = converter.Convert(catalogueBase);
                 datafileStatus.ConversionProgressValue = 0.9;
-                using (var file = File.Open(datafileStatus.Info.Document.Path, FileMode.Create))
+                using (var file = File.Open(datafileStatus.Info.Document.Filepath, FileMode.Create))
                 {
                     GetSaveAction(converted)?.Invoke(file);
                 }
@@ -201,7 +199,11 @@ namespace WarHub.Rule2ProfileTool.ViewModels
                 {
                     var root = (CatalogueBaseNode)file.Document.GetRoot();
                     var ruleNodes = root
-                    .Descendants(x => x is SelectionEntryBaseNode)
+                    .DescendantsAndSelf(x =>
+                            !x.IsKind(SourceKind.RepeatList) &&
+                            !x.IsKind(SourceKind.ConstraintList) &&
+                            !x.IsKind(SourceKind.ModifierList))
+                    .Where(x => x.IsKind(SourceKind.Rule))
                     .OfType<RuleNode>()
                     .Select(node => new RuleSelection(node))
                     .ToList();
@@ -240,6 +242,10 @@ namespace WarHub.Rule2ProfileTool.ViewModels
         private IReadOnlyCollection<DatafileInfo> LoadFolderImpl()
         {
             var path = FolderPath;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return new DatafileInfo[0];
+            }
             var workspace = XmlWorkspace.CreateFromDirectory(path);
             var infos = workspace.Documents
                 .Where(x => x.Kind == XmlDocumentKind.Gamesystem || x.Kind == XmlDocumentKind.Catalogue)
